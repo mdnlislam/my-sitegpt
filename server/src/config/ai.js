@@ -1,0 +1,10 @@
+import OpenAI from "openai";
+
+export const ai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export const CHAT_MODEL = process.env.CHAT_MODEL;
+
+export const EMBED_MODEL = process.env.EMBED_MODEL;
