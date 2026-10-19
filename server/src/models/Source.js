@@ -9,4 +9,5 @@ const sourceSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export default mongoose.model("Source", sourceSchema);
+const Source = mongoose.model("Source", sourceSchema);
+export default Source;

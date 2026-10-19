@@ -14,7 +14,7 @@ function makeKey(question) {
 
 export async function getCachedAnswer(question) {
   try {
-    return awa;
+    return await redis.get(makeKey(question));
   } catch {
     return null;
   }

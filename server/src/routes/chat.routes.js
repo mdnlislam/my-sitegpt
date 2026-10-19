@@ -1,11 +1,11 @@
 import { Router } from "express";
 
-import { ai, CHAT_MODEL } from "../config/ai";
+import { ai, CHAT_MODEL } from "../config/ai.js";
 
-import { embed } from "../services/vector";
+import { embed } from "../services/embed.js";
 
 import { getCachedAnswer, cacheAnswer } from "../services/cache.js";
-
+import { searchVectors } from "../services/vector.js";
 const router = Router();
 
 // POST /api/ask — { question }
@@ -62,3 +62,5 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+export default router;
