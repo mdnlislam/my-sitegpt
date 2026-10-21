@@ -1,37 +1,31 @@
 import { Router } from "express";
-
 import { ai, CHAT_MODEL } from "../config/ai.js";
-
 import { embed } from "../services/embed.js";
-
 import { getCachedAnswer, cacheAnswer } from "../services/cache.js";
 import { searchVectors } from "../services/vector.js";
+
 const router = Router();
 
 // POST /api/ask — { question }
-
 router.post("/", async (req, res) => {
   const { question } = req.body;
 
   if (!question)
-    return res.status(400).json({ error: "plz. give me question" });
+    return res.status(400).json({ error: "Please provide a question." });
 
   try {
+    // 1. Check if the answer exists in Redis cache
     const cached = await getCachedAnswer(question);
-
     if (cached) return res.json({ answer: cached, cached: true });
 
-    // ২. প্রশ্নকে ভেক্টর বানানো
-
+    // 2. Generate vector embedding for the user question
     const [questionVector] = await embed([question]);
-    // ৩. Pinecone থেকে সবচেয়ে কাছের ৫টা টুকরো
 
-    matches = await searchVectors(questionVector, 5);
-
+    // 3. Retrieve the top 5 most relevant context matches from Pinecone
+    const matches = await searchVectors(questionVector, 5);
     const context = matches.map((m) => m.metadata.text).join("\n\n---\n\n");
 
-    // ৪. শুধু ওই তথ্য দিয়ে AI-কে উত্তর লিখতে বলা
-
+    // 4. Request completion from the AI using only the retrieved context
     const response = await ai.chat.completions.create({
       model: CHAT_MODEL,
       messages: [
@@ -48,17 +42,19 @@ router.post("/", async (req, res) => {
 
     const answer = response.choices?.[0]?.message?.content;
     if (!answer)
-      throw new Error("AI কোনো উত্তর দেয়নি, একটু পরে আবার চেষ্টা করুন");
-    // ৫. উত্তর Redis-এ রেখে দেওয়া, পরের বার দ্রুত দেওয়ার জন্য
+      throw new Error(
+        "AI did not return any response. Please try again later.",
+      );
 
+    // 5. Cache the answer in Redis for subsequent fast lookups
     await cacheAnswer(question, answer);
 
-    // কোন কোন সোর্স থেকে উত্তর এসেছে, সেটাও পাঠানো
+    // Extract unique source references
     const sources = [...new Set(matches.map((m) => m.metadata.source))];
 
-    res.json({ answer, sources, cached });
+    res.json({ answer, sources, cached: false });
   } catch (err) {
-    console.error("Ask Error", err.message);
+    console.error("Ask Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

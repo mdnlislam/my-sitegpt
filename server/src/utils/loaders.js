@@ -1,19 +1,22 @@
 import * as cheerio from "cheerio";
-
+import { chromium } from "playwright";
 import mammoth from "mammoth";
 
 import { extractText, getDocumentProxy } from "unpdf";
 
 // ওয়েবপেজ থেকে লেখা
 export async function readUrl(url) {
-  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
-  if (!res.ok) throw new Error(`পেজ লোড হয়নি (${res.status})`);
-
-  const $ = cheerio.load(await res.text());
-  $("script, style, nav, footer, header, noscript").remove(); // অপ্রয়োজনীয় অংশ বাদ
-  return $("title").text() + "\n" + $("body").text();
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    return await page.evaluate(() => document.body.innerText); // only the visible text
+  } catch (err) {
+    throw new Error(`Could not load the page: ${err.message}`);
+  } finally {
+    await browser.close();
+  }
 }
-
 // PDF, DOCX, TXT ফাইল থেকে লেখা
 export async function readFile(file) {
   const name = file.originalname.toLowerCase();
