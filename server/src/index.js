@@ -10,10 +10,10 @@ import "./config/redis.js";
 import sourceRoutes from "./routes/source.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 const app = express();
-
+import dns from "node:dns";
 app.use(cors());
 app.use(express.json());
-
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 app.get("/", (req, res) => res.json({ message: "AI Server Running" }));
 app.use("/api/sources", sourceRoutes);
 app.use("/api/ask", chatRoutes);
